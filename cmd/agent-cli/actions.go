@@ -2,17 +2,17 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"sync"
 	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/docker/docker/api/types"
 	agent "github.com/go-ignite/ignite-agent"
-	"github.com/go-ignite/ignite-agent/service"
 	"github.com/olekukonko/tablewriter"
 
-	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
 	"github.com/urfave/cli"
 )
@@ -25,40 +25,44 @@ var (
 
 func initImages(c *cli.Context) error {
 	output := ioutil.Discard
-	if c.Bool("verbose") {
+	showVerbose := c.Bool("verbose")
+	if showVerbose {
 		output = os.Stdout
 	}
-	services := service.GetServices()
+
+	services := agent.GetServices()
 	wg := new(sync.WaitGroup)
-	wg.Add(len(services))
 
-	for _, s := range services {
-		func(s *service.Service) {
+	for _, service := range services {
+		serviceName := color.MagentaString(service.Name)
+		reader, err := agent.PullImage(service.Image)
+		if err != nil {
+			fmt.Printf("%s init service %s error: %v\n", IconBad, serviceName, err)
+			continue
+		}
+		fmt.Printf("%s init service %s\n", IconGood, serviceName)
+
+		wg.Add(1)
+		go func() {
 			defer wg.Done()
-			sp := spinner.New(spinner.CharSets[0], 100*time.Millisecond)
-			sp.Color("green")
-			sp.Start()
-			fmt.Printf("init service %s", color.MagentaString(s.Name))
+			io.Copy(output, reader)
+		}()
+	}
 
-			go func() {
-				err := agent.BuildImage(s.Dockerfile, output)
-				sp.Stop()
-				if err != nil {
-					fmt.Printf("\t%s", IconBad)
-				} else {
-					fmt.Printf("\t%s", IconGood)
-				}
-				fmt.Println()
-			}()
-			time.Sleep(1 * time.Second)
-		}(s)
+	s := spinner.New(spinner.CharSets[0], 100*time.Millisecond)
+	s.Suffix = " download..."
+	if !showVerbose {
+		s.Start()
 	}
 	wg.Wait()
+	if !showVerbose {
+		s.Stop()
+	}
 	return nil
 }
 
 func list(c *cli.Context) error {
-	services := service.GetServices()
+	services := agent.GetServices()
 	images, err := agent.ListImages()
 	if err != nil {
 		fmt.Printf("%s List images error: %v\n", IconBad, err)
@@ -79,28 +83,22 @@ func list(c *cli.Context) error {
 
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetAlignment(tablewriter.ALIGN_CENTER)
-	table.SetHeader([]string{"Name", "Image", "Version", "Latest"})
+	table.SetHeader([]string{"Name", "Image", "Version"})
 	showCaption := false
 	for _, service := range services {
 		serviceImage := ""
 		localVersion := IconBad
-		latestVersion := IconGood
 		if service.ImageExist {
 			serviceImage = service.Image
 			localVersion = color.GreenString(service.ImageVersion)
-			if service.Version != service.ImageVersion {
-				showCaption = true
-				latestVersion = color.RedString(service.Version)
-			}
 		} else {
 			showCaption = true
-			latestVersion = color.RedString(service.Version)
 		}
-		table.Append([]string{color.MagentaString(service.Name), serviceImage, localVersion, latestVersion})
+		table.Append([]string{color.MagentaString(service.Name), serviceImage, localVersion})
 	}
 	table.Render()
 	if showCaption {
-		fmt.Printf("\n%s use `%s` command to init or upgrade services.\n", IconInfo, color.GreenString("agent-cli init"))
+		fmt.Printf("\n%s use `%s` command to init services.\n", IconInfo, color.GreenString("agent-cli init"))
 	}
 	return nil
 }
