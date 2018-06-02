@@ -1,0 +1,16 @@
+syntax = "proto3";
+option go_package = "github.com/go-ignite/ignite-agent/protos";
+
+service AgentService {
+  rpc NodeHeartbeat(GeneralRequest) returns (stream HeartbeatStreamServer);
+  rpc ServiceHeartbeat(GeneralRequest) returns (stream HeartbeatStreamServer);
+  rpc Init(GeneralRequest) returns (GeneralResponse);
+}
+
+message GeneralRequest {
+	string token = 1;
+}
+
+message GeneralResponse {}
+
+message HeartbeatStreamServer{}
