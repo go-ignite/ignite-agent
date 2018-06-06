@@ -56,7 +56,7 @@ func (s *AgentService) ServiceHeartbeat(req *pb.GeneralRequest, stream pb.AgentS
 
 func (s *AgentService) Init(ctx context.Context, req *pb.GeneralRequest) (*pb.GeneralResponse, error) {
 	logrus.Info("init start")
-	if !verifyToken(req.Token, config.C.Secret.Admin) {
+	if !verifyToken(req.Token, config.C.App.Secret) {
 		return nil, errors.New("request token is invalid")
 	}
 	services := agent.GetServices()
