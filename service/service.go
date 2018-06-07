@@ -9,21 +9,22 @@ import (
 	"sync"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	agent "github.com/go-ignite/ignite-agent"
 	"github.com/go-ignite/ignite-agent/config"
 	pb "github.com/go-ignite/ignite-agent/protos"
+
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/sirupsen/logrus"
 )
 
 type AgentService struct{}
 
-func verifyToken(tokenString, secret string) bool {
+func verifyToken(tokenString string, isAdmin *bool) bool {
 	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected siging method")
 		}
-		return []byte(secret), nil
+		return []byte(config.C.App.Secret), nil
 	})
 	if err != nil {
 		return false
@@ -34,6 +35,15 @@ func verifyToken(tokenString, secret string) bool {
 	}
 	if !token.Valid {
 		return false
+	}
+	if isAdmin != nil {
+		id, ok := claims["id"].(float64)
+		if !ok {
+			return false
+		}
+		if (*isAdmin && id != -1) || (!*isAdmin && id <= 0) {
+			return false
+		}
 	}
 	return claims.VerifyExpiresAt(time.Now().Unix(), true)
 }
@@ -56,7 +66,8 @@ func (s *AgentService) ServiceHeartbeat(req *pb.GeneralRequest, stream pb.AgentS
 
 func (s *AgentService) Init(ctx context.Context, req *pb.GeneralRequest) (*pb.GeneralResponse, error) {
 	logrus.Info("init start")
-	if !verifyToken(req.Token, config.C.App.Secret) {
+	isAdmin := true
+	if !verifyToken(req.Token, &isAdmin) {
 		return nil, errors.New("request token is invalid")
 	}
 	services := agent.GetServices()
