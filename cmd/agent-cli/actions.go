@@ -30,7 +30,7 @@ func initImages(c *cli.Context) error {
 		output = os.Stdout
 	}
 
-	services := agent.GetServices()
+	services := GetServices()
 	wg := new(sync.WaitGroup)
 
 	for _, service := range services {
@@ -62,7 +62,7 @@ func initImages(c *cli.Context) error {
 }
 
 func list(c *cli.Context) error {
-	services := agent.GetServices()
+	services := GetServices()
 	images, err := agent.ListImages()
 	if err != nil {
 		fmt.Printf("%s List images error: %v\n", IconBad, err)
