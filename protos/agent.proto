@@ -2,10 +2,22 @@ syntax = "proto3";
 option go_package = "github.com/go-ignite/ignite-agent/protos";
 
 service AgentService {
-  rpc NodeHeartbeat(GeneralRequest) returns (stream HeartbeatStreamServer);
-  rpc ServiceHeartbeat(GeneralRequest) returns (stream HeartbeatStreamServer);
-  rpc Init(GeneralRequest) returns (GeneralResponse);
+    rpc NodeHeartbeat(GeneralRequest) returns (stream HeartbeatStreamServer);
+    rpc ServiceHeartbeat(GeneralRequest) returns (stream HeartbeatStreamServer);
+
+    rpc Init(GeneralRequest) returns (GeneralResponse);
+    rpc GetAvailablePort(GetAvailablePortRequest) returns (GetAvailablePortResponse);
+    rpc CreateService(CreateServiceRequest) returns (CreateServiceResponse);
 }
+
+message ServiceType {
+    enum Enum {
+        NOT_SET = 0;
+  	    SS_LIBEV = 1;
+        SSR = 2;
+    }
+}
+
 
 message GeneralRequest {
 	string token = 1;
@@ -14,3 +26,27 @@ message GeneralRequest {
 message GeneralResponse {}
 
 message HeartbeatStreamServer{}
+
+message GetAvailablePortRequest {
+	string token = 1;
+	repeated int32 used_ports = 2;
+	int32 port_from = 3;
+	int32 port_to = 4;
+}
+
+message GetAvailablePortResponse {
+	int32 port = 1;
+}
+
+message CreateServiceRequest {
+	string token = 1;
+	int32 port = 2;
+	ServiceType.Enum type = 3;
+	string method = 4;
+	string password = 5;
+	string name = 6;
+}
+
+message CreateServiceResponse {
+	string service_id = 1;
+}
