@@ -84,6 +84,15 @@ func StartContainer(id string) error {
 	return cli.ContainerStart(context.Background(), id, types.ContainerStartOptions{})
 }
 
+func StopContainer(id string) error {
+	cli, err := GetDockerClient()
+	if err != nil {
+		return fmt.Errorf("GetDockerClient error: %v", err)
+	}
+
+	return cli.ContainerStop(context.Background(), id, nil)
+}
+
 func RemoveContainer(id string) error {
 	cli, err := GetDockerClient()
 	if err != nil {
