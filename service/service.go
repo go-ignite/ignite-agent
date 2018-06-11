@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"sync"
@@ -12,9 +11,17 @@ import (
 	agent "github.com/go-ignite/ignite-agent"
 	"github.com/go-ignite/ignite-agent/config"
 	pb "github.com/go-ignite/ignite-agent/protos"
+	"github.com/go-ignite/ignite-agent/utils"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/sirupsen/logrus"
+)
+
+var (
+	imageMap = map[pb.ServiceType_Enum]string{
+		pb.ServiceType_SS_LIBEV: utils.GetImageName("ss-libev"),
+		pb.ServiceType_SSR:      utils.GetImageName("ssr"),
+	}
 )
 
 type AgentService struct{}
@@ -22,7 +29,7 @@ type AgentService struct{}
 func verifyToken(tokenString string, isAdmin *bool) bool {
 	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected siging method")
+			return nil, errors.New("signing method is invalid")
 		}
 		return []byte(config.C.App.Secret), nil
 	})
@@ -65,15 +72,13 @@ func (s *AgentService) ServiceHeartbeat(req *pb.GeneralRequest, stream pb.AgentS
 }
 
 func (s *AgentService) Init(ctx context.Context, req *pb.GeneralRequest) (*pb.GeneralResponse, error) {
-	logrus.Info("init start")
-	isAdmin := true
-	if !verifyToken(req.Token, &isAdmin) {
+	logrus.Info("agent init")
+	if isAdmin := true; !verifyToken(req.Token, &isAdmin) {
 		return nil, errors.New("request token is invalid")
 	}
-	services := agent.GetServices()
 	wg := new(sync.WaitGroup)
-	for _, service := range services {
-		reader, err := agent.PullImage(service.Image)
+	for _, image := range imageMap {
+		reader, err := agent.PullImage(image)
 		if err != nil {
 			return nil, err
 		}
@@ -84,6 +89,46 @@ func (s *AgentService) Init(ctx context.Context, req *pb.GeneralRequest) (*pb.Ge
 		}()
 	}
 	wg.Wait()
-	logrus.Info("init end")
 	return &pb.GeneralResponse{}, nil
+}
+
+func (s *AgentService) GetAvailablePort(ctx context.Context, req *pb.GetAvailablePortRequest) (*pb.GetAvailablePortResponse, error) {
+	logrus.WithFields(logrus.Fields{
+		"usedPorts": req.UsedPorts,
+		"portFrom":  req.PortFrom,
+		"portTo":    req.PortTo,
+	}).Info("get available port")
+	if isAdmin := false; !verifyToken(req.Token, &isAdmin) {
+		return nil, errors.New("request token is invalid")
+	}
+	port, err := utils.GetAvailablePort(req.PortFrom, req.PortTo, req.UsedPorts)
+	if err != nil {
+		return nil, err
+	}
+	logrus.WithField("port", port).Info("get available port")
+	return &pb.GetAvailablePortResponse{Port: port}, nil
+}
+
+func (s *AgentService) CreateService(ctx context.Context, req *pb.CreateServiceRequest) (*pb.CreateServiceResponse, error) {
+	logrus.WithFields(logrus.Fields{
+		"name":   req.Name,
+		"type":   req.Type,
+		"image":  imageMap[req.Type],
+		"method": req.Method,
+		"port":   req.Port,
+	}).Info("create service")
+
+	if isAdmin := false; !verifyToken(req.Token, &isAdmin) {
+		return nil, errors.New("request token is invalid")
+	}
+	serviceID, err := agent.CreateContainer(imageMap[req.Type], req.Name, req.Method, req.Password, req.Port)
+	if err != nil {
+		return nil, err
+	}
+	err = agent.StartContainer(serviceID)
+	if err != nil {
+		agent.RemoveContainer(serviceID)
+		return nil, err
+	}
+	return &pb.CreateServiceResponse{ServiceId: serviceID}, nil
 }
