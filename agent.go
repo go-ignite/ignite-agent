@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 const (
@@ -99,4 +100,36 @@ func RemoveContainer(id string) error {
 		return fmt.Errorf("GetDockerClient error: %v", err)
 	}
 	return cli.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true})
+}
+
+func ContainerExist(id string) (bool, error) {
+	cli, err := GetDockerClient()
+	if err != nil {
+		return false, fmt.Errorf("GetDockerClient error: %v", err)
+	}
+
+	_, err = cli.ContainerInspect(context.Background(), id)
+	if err == nil {
+		return true, nil
+	}
+
+	if _, ok := err.(*docker.NoSuchContainer); ok {
+		return false, nil
+	}
+
+	return false, err
+}
+
+func IsContainerRunning(id string) bool {
+	cli, err := GetDockerClient()
+	if err != nil {
+		return false
+	}
+
+	info, err := cli.ContainerInspect(context.Background(), id)
+	if err != nil {
+		return false
+	}
+
+	return info.State.Running
 }
