@@ -134,14 +134,25 @@ func (s *AgentService) CreateService(ctx context.Context, req *pb.CreateServiceR
 }
 
 func (s *AgentService) StopService(ctx context.Context, req *pb.StopServiceRequest) (*pb.GeneralResponse, error) {
-	logrus.WithFields(logrus.Fields{
-		"service_id": req.ServiceId,
-	}).Info("stop service")
+	logrus.WithField("serviceID", req.ServiceId).Info("stop service")
 
 	if isAdmin := false; !verifyToken(req.Token, &isAdmin) {
 		return nil, errors.New("request token is invalid")
 	}
 	err := agent.StopContainer(req.ServiceId)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.GeneralResponse{}, nil
+}
+
+func (s *AgentService) RemoveService(ctx context.Context, req *pb.RemoveServiceRequest) (*pb.GeneralResponse, error) {
+	logrus.WithField("serviceID", req.ServiceId).Info("remove service")
+
+	if !verifyToken(req.Token, nil) {
+		return nil, errors.New("request token is invalid")
+	}
+	err := agent.RemoveContainer(req.ServiceId)
 	if err != nil {
 		return nil, err
 	}

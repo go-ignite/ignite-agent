@@ -9,6 +9,7 @@ service AgentService {
     rpc GetAvailablePort(GetAvailablePortRequest) returns (GetAvailablePortResponse);
     rpc CreateService(CreateServiceRequest) returns (CreateServiceResponse);
 	rpc StopService(StopServiceRequest) returns (GeneralResponse);
+	rpc RemoveService(RemoveServiceRequest) returns (GeneralResponse);
 }
 
 message ServiceType {
@@ -48,11 +49,16 @@ message CreateServiceRequest {
 	string name = 6;
 }
 
+message CreateServiceResponse {
+	string service_id = 1;
+}
+
 message StopServiceRequest {
 	string token = 1;
 	string service_id = 2;
 }
 
-message CreateServiceResponse {
-	string service_id = 1;
+message RemoveServiceRequest {
+	string token = 1;
+	string service_id = 2;
 }
