@@ -10,7 +10,6 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
-	docker "github.com/fsouza/go-dockerclient"
 )
 
 const (
@@ -113,7 +112,7 @@ func ContainerExist(id string) (bool, error) {
 		return true, nil
 	}
 
-	if _, ok := err.(*docker.NoSuchContainer); ok {
+	if ok := client.IsErrContainerNotFound(err); ok {
 		return false, nil
 	}
 
