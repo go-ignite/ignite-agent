@@ -10,7 +10,7 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/docker/docker/api/types"
-	agent "github.com/go-ignite/ignite-agent"
+	"github.com/go-ignite/ignite-agent"
 	"github.com/olekukonko/tablewriter"
 
 	"github.com/fatih/color"

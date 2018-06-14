@@ -4,7 +4,7 @@ import (
 	"log"
 	"net"
 
-	agent "github.com/go-ignite/ignite-agent"
+	"github.com/go-ignite/ignite-agent"
 	"github.com/go-ignite/ignite-agent/config"
 	pb "github.com/go-ignite/ignite-agent/protos"
 	"github.com/go-ignite/ignite-agent/service"

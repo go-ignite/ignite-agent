@@ -35,12 +35,12 @@ func ListImages() ([]types.ImageSummary, error) {
 	if err != nil {
 		return nil, fmt.Errorf("GetDockerClient error: %v", err)
 	}
-	filters := filters.NewArgs()
-	filters.Add("label", fmt.Sprintf("%s=%s", agentLabelKey, agentLabelValue))
-	filters.Add("dangling", "false")
+	filter := filters.NewArgs()
+	filter.Add("label", fmt.Sprintf("%s=%s", agentLabelKey, agentLabelValue))
+	filter.Add("dangling", "false")
 	images, err := cli.ImageList(context.Background(), types.ImageListOptions{
 		All:     false,
-		Filters: filters,
+		Filters: filter,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("cli.ImageList error: %v", err)

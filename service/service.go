@@ -8,12 +8,12 @@ import (
 	"sync"
 	"time"
 
-	agent "github.com/go-ignite/ignite-agent"
+	"github.com/go-ignite/ignite-agent"
 	"github.com/go-ignite/ignite-agent/config"
 	pb "github.com/go-ignite/ignite-agent/protos"
 	"github.com/go-ignite/ignite-agent/utils"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/sirupsen/logrus"
 )
 
