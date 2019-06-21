@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-ignite/ignite-agent/utils"
 	"io"
 	"io/ioutil"
 	"os"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/docker/docker/api/types"
-	"github.com/go-ignite/ignite-agent"
 	"github.com/olekukonko/tablewriter"
 
 	"github.com/fatih/color"
@@ -35,7 +35,7 @@ func initImages(c *cli.Context) error {
 
 	for _, service := range services {
 		serviceName := color.MagentaString(service.Name)
-		reader, err := agent.PullImage(service.Image)
+		reader, err := utils.PullImage(service.Image)
 		if err != nil {
 			fmt.Printf("%s init service %s error: %v\n", IconBad, serviceName, err)
 			continue
@@ -63,7 +63,7 @@ func initImages(c *cli.Context) error {
 
 func list(c *cli.Context) error {
 	services := GetServices()
-	images, err := agent.ListImages()
+	images, err := utils.ListImages()
 	if err != nil {
 		fmt.Printf("%s List images error: %v\n", IconBad, err)
 		os.Exit(1)

@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/go-ignite/ignite-agent/utils"
 	"log"
 	"net"
 
-	"github.com/go-ignite/ignite-agent"
 	"github.com/go-ignite/ignite-agent/config"
 	pb "github.com/go-ignite/ignite-agent/protos"
 	"github.com/go-ignite/ignite-agent/service"
@@ -14,7 +14,7 @@ import (
 )
 
 func checkEnv() {
-	client, err := agent.GetDockerClient()
+	client, err := utils.GetDockerClient()
 	if err != nil {
 		logrus.Fatalf("agent.GetDockerClient error: %v", err)
 	}

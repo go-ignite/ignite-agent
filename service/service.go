@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-ignite/ignite-agent"
 	"github.com/go-ignite/ignite-agent/config"
 	pb "github.com/go-ignite/ignite-agent/protos"
 	"github.com/go-ignite/ignite-agent/utils"
@@ -78,7 +77,7 @@ func (s *AgentService) Init(ctx context.Context, req *pb.GeneralRequest) (*pb.Ge
 	}
 	wg := new(sync.WaitGroup)
 	for _, image := range imageMap {
-		reader, err := agent.PullImage(image)
+		reader, err := utils.PullImage(image)
 		if err != nil {
 			return nil, err
 		}
@@ -121,13 +120,13 @@ func (s *AgentService) CreateService(ctx context.Context, req *pb.CreateServiceR
 	if isAdmin := false; !verifyToken(req.Token, &isAdmin) {
 		return nil, errors.New("request token is invalid")
 	}
-	serviceID, err := agent.CreateContainer(imageMap[req.Type], req.Name, req.Method, req.Password, req.Port)
+	serviceID, err := utils.CreateContainer(imageMap[req.Type], req.Name, req.Method, req.Password, req.Port)
 	if err != nil {
 		return nil, err
 	}
-	err = agent.StartContainer(serviceID)
+	err = utils.StartContainer(serviceID)
 	if err != nil {
-		agent.RemoveContainer(serviceID)
+		utils.RemoveContainer(serviceID)
 		return nil, err
 	}
 	return &pb.CreateServiceResponse{ServiceId: serviceID}, nil
@@ -139,7 +138,7 @@ func (s *AgentService) StopService(ctx context.Context, req *pb.StopServiceReque
 	if isAdmin := false; !verifyToken(req.Token, &isAdmin) {
 		return nil, errors.New("request token is invalid")
 	}
-	err := agent.StopContainer(req.ServiceId)
+	err := utils.StopContainer(req.ServiceId)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +151,7 @@ func (s *AgentService) RemoveService(ctx context.Context, req *pb.RemoveServiceR
 	if !verifyToken(req.Token, nil) {
 		return nil, errors.New("request token is invalid")
 	}
-	err := agent.RemoveContainer(req.ServiceId)
+	err := utils.RemoveContainer(req.ServiceId)
 	if err != nil {
 		return nil, err
 	}
