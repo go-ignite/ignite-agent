@@ -1,0 +1,39 @@
+module github.com/go-ignite/ignite-agent
+
+go 1.12
+
+require (
+	github.com/Microsoft/go-winio v0.4.7
+	github.com/briandowns/spinner v0.0.0-20170614154858-48dbb65d7bd5
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/docker/distribution v2.6.2+incompatible
+	github.com/docker/docker v1.13.1
+	github.com/docker/go-connections v0.3.0
+	github.com/docker/go-units v0.3.3
+	github.com/fatih/color v1.7.0
+	github.com/fsnotify/fsnotify v1.4.7
+	github.com/golang/protobuf v1.1.0
+	github.com/hashicorp/hcl v0.0.0-20180404174102-ef8a98b0bbce
+	github.com/magiconair/properties v1.8.0
+	github.com/mattn/go-colorable v0.0.9
+	github.com/mattn/go-isatty v0.0.3
+	github.com/mattn/go-runewidth v0.0.2
+	github.com/mitchellh/mapstructure v0.0.0-20180511142126-bb74f1db0675
+	github.com/olekukonko/tablewriter v0.0.0-20180506121414-d4647c9c7a84
+	github.com/pelletier/go-toml v1.1.0
+	github.com/pkg/errors v0.8.0
+	github.com/sirupsen/logrus v1.0.5
+	github.com/spf13/afero v1.1.0
+	github.com/spf13/cast v1.2.0
+	github.com/spf13/jwalterweatherman v0.0.0-20180109140146-7c0cea34c8ec
+	github.com/spf13/pflag v1.0.1
+	github.com/spf13/viper v1.0.2
+	github.com/urfave/cli v1.20.0
+	golang.org/x/crypto v0.0.0-20180531191117-5ba7f6308246
+	golang.org/x/net v0.0.0-20180521201818-8e0cdda24ed4
+	golang.org/x/sys v0.0.0-20180522145951-7f59abf37be6
+	golang.org/x/text v0.3.0
+	google.golang.org/genproto v0.0.0-20180601223552-81158efcc9f2
+	google.golang.org/grpc v1.12.0
+	gopkg.in/yaml.v2 v2.2.1
+)
