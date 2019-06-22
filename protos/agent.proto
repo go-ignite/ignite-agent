@@ -8,8 +8,8 @@ service AgentService {
     rpc Init(GeneralRequest) returns (GeneralResponse);
     rpc GetAvailablePort(GetAvailablePortRequest) returns (GetAvailablePortResponse);
     rpc CreateService(CreateServiceRequest) returns (CreateServiceResponse);
-	rpc StopService(StopServiceRequest) returns (GeneralResponse);
-	rpc RemoveService(RemoveServiceRequest) returns (GeneralResponse);
+    rpc StopService(StopServiceRequest) returns (GeneralResponse);
+    rpc RemoveService(RemoveServiceRequest) returns (GeneralResponse);
 }
 
 message ServiceType {
