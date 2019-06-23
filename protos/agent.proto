@@ -6,7 +6,6 @@ service AgentService {
     rpc Sync(GeneralRequest) returns (stream SyncStreamServer);
 
     rpc Init(GeneralRequest) returns (GeneralResponse);
-    rpc GetAvailablePort(GetAvailablePortRequest) returns (GetAvailablePortResponse);
     rpc CreateService(CreateServiceRequest) returns (CreateServiceResponse);
     rpc StopService(StopServiceRequest) returns (GeneralResponse);
     rpc RemoveService(RemoveServiceRequest) returns (GeneralResponse);
@@ -29,17 +28,6 @@ message GeneralResponse {}
 
 message HeartbeatStreamServer{}
 message SyncStreamServer{}
-
-message GetAvailablePortRequest {
-	string token = 1;
-	repeated int32 used_ports = 2;
-	int32 port_from = 3;
-	int32 port_to = 4;
-}
-
-message GetAvailablePortResponse {
-	int32 port = 1;
-}
 
 message CreateServiceRequest {
 	string token = 1;
