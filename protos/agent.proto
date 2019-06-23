@@ -2,27 +2,42 @@ syntax = "proto3";
 option go_package = "github.com/go-ignite/ignite-agent/protos";
 
 service AgentService {
-    rpc NodeHeartbeat(GeneralRequest) returns (stream HeartbeatStreamServer);
-    rpc Sync(GeneralRequest) returns (stream SyncStreamServer);
+	rpc NodeHeartbeat(GeneralRequest) returns (stream HeartbeatStreamServer);
+	rpc Sync(GeneralRequest) returns (stream SyncStreamServer);
 
-    rpc Init(GeneralRequest) returns (GeneralResponse);
-    rpc CreateService(CreateServiceRequest) returns (CreateServiceResponse);
-    rpc StopService(StopServiceRequest) returns (GeneralResponse);
-    rpc RemoveService(RemoveServiceRequest) returns (GeneralResponse);
+	rpc Init(GeneralRequest) returns (GeneralResponse);
+	rpc CreateService(CreateServiceRequest) returns (CreateServiceResponse);
+	rpc StopService(StopServiceRequest) returns (GeneralResponse);
+	rpc RemoveService(RemoveServiceRequest) returns (GeneralResponse);
 }
 
 message ServiceType {
     enum Enum {
-        NOT_SET = 0;
-  	    SS_LIBEV = 1;
-        SSR = 2;
+		NOT_SET = 0;
+		SS_LIBEV = 1;
+		SSR = 2;
     }
+}
+
+message ServiceEncryptionMethod {
+	enum Enum {
+		NOT_SET = 0;
+		AES_256_CFB = 1;
+		AES_128_GCM = 2;
+		AES_192_GCM = 3;
+		AES_256_GCM = 4;
+		CHACHA20_IETF_POLY1305 = 5;
+		AES_256_CTR = 6;
+		CHACHA20 = 7;
+		CHACHA20_IETF = 8;
+	}
 }
 
 message ServiceStatus {
 	enum Enum {
-		RUNNING = 0;
-		STOPPED = 1;
+		NOT_SET = 0;
+		RUNNING = 1;
+		STOPPED = 2;
 	}
 }
 
@@ -40,7 +55,7 @@ message ServiceInfo {
 	string user_id = 2;
 	string container_id = 3;
 	int32 port = 4;
-	ServiceStatus status = 5;
+	ServiceStatus.Enum status = 5;
 	int64 stats_result = 6;
 }
 
@@ -53,7 +68,7 @@ message CreateServiceRequest {
 	int32 port_from = 2;
 	int32 port_to = 3;
 	ServiceType.Enum type = 4;
-	string method = 5;
+	ServiceEncryptionMethod.Enum encryption_method = 5;
 	string password = 6;
 	string name = 7;
 }
