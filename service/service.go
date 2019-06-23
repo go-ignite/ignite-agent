@@ -120,7 +120,7 @@ func (s *AgentService) CreateService(ctx context.Context, req *pb.CreateServiceR
 		"name":   req.Name,
 		"type":   req.Type,
 		"image":  imageMap[req.Type],
-		"method": req.Method,
+		"method": req.EncryptionMethod.String(),
 	}).Info("create service")
 
 	if isAdmin := false; !verifyToken(req.Token, &isAdmin) {
@@ -128,7 +128,7 @@ func (s *AgentService) CreateService(ctx context.Context, req *pb.CreateServiceR
 	}
 
 	// TODO: refactor this part
-	serviceID, err := utils.CreateContainer(imageMap[req.Type], req.Name, req.Method, req.Password, 0)
+	serviceID, err := utils.CreateContainer(imageMap[req.Type], req.Name, req.EncryptionMethod.ValidMethod(), req.Password, 0)
 	if err != nil {
 		return nil, err
 	}
