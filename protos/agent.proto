@@ -27,7 +27,19 @@ message GeneralRequest {
 message GeneralResponse {}
 
 message HeartbeatStreamServer{}
-message SyncStreamServer{}
+
+message ServiceStatus {
+	string service_id = 1;
+	string user_id = 2;
+	string container_id = 3;
+	int32 port = 4;
+	int32 status = 5;
+	int64 stats_result = 6;
+}
+
+message SyncStreamServer{
+	repeated ServiceStatus services = 1;
+}
 
 message CreateServiceRequest {
 	string token = 1;
