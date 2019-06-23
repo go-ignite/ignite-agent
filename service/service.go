@@ -91,23 +91,6 @@ func (s *AgentService) Init(ctx context.Context, req *pb.GeneralRequest) (*pb.Ge
 	return &pb.GeneralResponse{}, nil
 }
 
-func (s *AgentService) GetAvailablePort(ctx context.Context, req *pb.GetAvailablePortRequest) (*pb.GetAvailablePortResponse, error) {
-	logrus.WithFields(logrus.Fields{
-		"usedPorts": req.UsedPorts,
-		"portFrom":  req.PortFrom,
-		"portTo":    req.PortTo,
-	}).Info("get available port")
-	if isAdmin := false; !verifyToken(req.Token, &isAdmin) {
-		return nil, errors.New("request token is invalid")
-	}
-	port, err := utils.GetAvailablePort(req.PortFrom, req.PortTo, req.UsedPorts)
-	if err != nil {
-		return nil, err
-	}
-	logrus.WithField("port", port).Info("get available port")
-	return &pb.GetAvailablePortResponse{Port: port}, nil
-}
-
 func (s *AgentService) CreateService(ctx context.Context, req *pb.CreateServiceRequest) (*pb.CreateServiceResponse, error) {
 	logrus.WithFields(logrus.Fields{
 		"name":   req.Name,
