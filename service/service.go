@@ -55,7 +55,7 @@ func verifyToken(tokenString string, isAdmin *bool) bool {
 }
 
 func (s *AgentService) NodeHeartbeat(req *pb.GeneralRequest, stream pb.AgentService_NodeHeartbeatServer) error {
-	logrus.Info("node heartbeat start")
+	logrus.Info("node heartbeat starts")
 	for {
 		if err := stream.Send(&pb.HeartbeatStreamServer{}); err != nil {
 			break
@@ -67,6 +67,30 @@ func (s *AgentService) NodeHeartbeat(req *pb.GeneralRequest, stream pb.AgentServ
 }
 
 func (s *AgentService) Sync(req *pb.GeneralRequest, stream pb.AgentService_SyncServer) error {
+	logrus.Info("sync service starts")
+
+	// init tht service list
+	//services := []pb.ServiceStatus{}
+
+	for {
+		// sync service data every 2 minutes
+		time.Sleep(2 * time.Minute)
+
+		// load detail info for every services
+		_, err := utils.ListContainers()
+		if err != nil {
+			logrus.Error("failed to list container:", err)
+			continue
+		}
+
+		if err := stream.Send(&pb.SyncStreamServer{}); err != nil {
+			logrus.Error("sync service stream is unavailable")
+			break
+		}
+
+	}
+
+	logrus.Info("sync service end")
 	return nil
 }
 

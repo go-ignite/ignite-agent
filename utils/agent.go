@@ -119,6 +119,22 @@ func ContainerExist(id string) (bool, error) {
 	return false, err
 }
 
+func ListContainers() ([]types.Container, error) {
+	cli, err := GetDockerClient()
+	if err != nil {
+		return nil, err
+	}
+
+	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{
+		All: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return containers, nil
+}
+
 func IsContainerRunning(id string) bool {
 	cli, err := GetDockerClient()
 	if err != nil {

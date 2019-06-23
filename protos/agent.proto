@@ -19,6 +19,13 @@ message ServiceType {
     }
 }
 
+message ServiceStatus {
+	enum Enum {
+		RUNNING = 0;
+		STOPPED = 1;
+	}
+}
+
 
 message GeneralRequest {
 	string token = 1;
@@ -28,17 +35,17 @@ message GeneralResponse {}
 
 message HeartbeatStreamServer{}
 
-message ServiceStatus {
+message ServiceInfo {
 	string service_id = 1;
 	string user_id = 2;
 	string container_id = 3;
 	int32 port = 4;
-	int32 status = 5;
+	ServiceStatus status = 5;
 	int64 stats_result = 6;
 }
 
 message SyncStreamServer{
-	repeated ServiceStatus services = 1;
+	repeated ServiceInfo services = 1;
 }
 
 message CreateServiceRequest {
