@@ -91,7 +91,7 @@ func (s *AgentService) Sync(req *pb.GeneralRequest, stream pb.AgentService_SyncS
 				Port:        int32(c.Ports[0].PublicPort),
 			}
 
-			// get net
+			// get net data of container
 			statResult, err := utils.GetContainerStatsOutNet(svc.ContainerId)
 			if err != nil {
 				logrus.Error(err)
