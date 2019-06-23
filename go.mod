@@ -12,7 +12,7 @@ require (
 	github.com/docker/go-units v0.3.3
 	github.com/fatih/color v1.7.0
 	github.com/fsnotify/fsnotify v1.4.7
-	github.com/golang/protobuf v1.1.0
+	github.com/golang/protobuf v1.3.1
 	github.com/hashicorp/hcl v0.0.0-20180404174102-ef8a98b0bbce
 	github.com/magiconair/properties v1.8.0
 	github.com/mattn/go-colorable v0.0.9

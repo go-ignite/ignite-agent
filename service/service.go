@@ -66,7 +66,7 @@ func (s *AgentService) NodeHeartbeat(req *pb.GeneralRequest, stream pb.AgentServ
 	return nil
 }
 
-func (s *AgentService) ServiceHeartbeat(req *pb.GeneralRequest, stream pb.AgentService_ServiceHeartbeatServer) error {
+func (s *AgentService) Sync(req *pb.GeneralRequest, stream pb.AgentService_SyncServer) error {
 	return nil
 }
 
@@ -114,13 +114,14 @@ func (s *AgentService) CreateService(ctx context.Context, req *pb.CreateServiceR
 		"type":   req.Type,
 		"image":  imageMap[req.Type],
 		"method": req.Method,
-		"port":   req.Port,
 	}).Info("create service")
 
 	if isAdmin := false; !verifyToken(req.Token, &isAdmin) {
 		return nil, errors.New("request token is invalid")
 	}
-	serviceID, err := utils.CreateContainer(imageMap[req.Type], req.Name, req.Method, req.Password, req.Port)
+
+	// TODO: refactor this part
+	serviceID, err := utils.CreateContainer(imageMap[req.Type], req.Name, req.Method, req.Password, 0)
 	if err != nil {
 		return nil, err
 	}
