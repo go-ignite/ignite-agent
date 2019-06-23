@@ -10,8 +10,9 @@ func TestListContainers(t *testing.T) {
 		t.Error(err)
 	}
 
-	// output all the continers
+	// output all the containers
 	for _, c := range containers {
 		t.Logf("container: %s", c.ID)
+		t.Log("container name:", c.Names)
 	}
-}
+

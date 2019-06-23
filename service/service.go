@@ -70,24 +70,43 @@ func (s *AgentService) Sync(req *pb.GeneralRequest, stream pb.AgentService_SyncS
 	logrus.Info("sync service starts")
 
 	// init tht service list
-	//services := []pb.ServiceStatus{}
+	services := []*pb.ServiceInfo{}
 
 	for {
 		// sync service data every 2 minutes
 		time.Sleep(2 * time.Minute)
 
 		// load detail info for every services
-		_, err := utils.ListContainers()
+		containers, err := utils.ListContainers()
 		if err != nil {
 			logrus.Error("failed to list container:", err)
 			continue
 		}
 
-		if err := stream.Send(&pb.SyncStreamServer{}); err != nil {
+		for _, c := range containers {
+			svc := &pb.ServiceInfo{
+				ServiceId:   c.Names[0],
+				UserId:      c.Names[0],
+				ContainerId: c.ID,
+				Port:        int32(c.Ports[0].PublicPort),
+			}
+
+			// get net
+			statResult, err := utils.GetContainerStatsOutNet(svc.ContainerId)
+			if err != nil {
+				logrus.Error(err)
+			}
+
+			svc.StatsResult = int64(statResult)
+			services = append(services, svc)
+		}
+
+		if err := stream.Send(&pb.SyncStreamServer{
+			Services: services,
+		}); err != nil {
 			logrus.Error("sync service stream is unavailable")
 			break
 		}
-
 	}
 
 	logrus.Info("sync service end")

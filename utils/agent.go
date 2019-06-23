@@ -2,8 +2,10 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -133,6 +135,27 @@ func ListContainers() ([]types.Container, error) {
 	}
 
 	return containers, nil
+}
+
+func GetContainerStatsOutNet(containerID string) (uint64, error) {
+	cli, err := GetDockerClient()
+	if err != nil {
+		return 0, err
+	}
+
+	stat, err := cli.ContainerStats(context.Background(), containerID, false)
+	if err != nil {
+		return 0, err
+	}
+
+	bytes, err := ioutil.ReadAll(stat.Body)
+
+	sj := types.StatsJSON{}
+	if err := json.Unmarshal(bytes, &sj); err != nil {
+		return 0, err
+	}
+
+	return sj.Networks["eth0"].TxBytes, nil
 }
 
 func IsContainerRunning(id string) bool {
