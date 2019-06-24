@@ -64,7 +64,8 @@ message SyncStreamServer{
 }
 
 message SyncRequest {
-	int64 sync_interval = 1;
+	string token = 1;
+	int64 sync_interval = 2;
 }
 
 message CreateServiceRequest {
