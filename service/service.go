@@ -66,7 +66,7 @@ func (s *AgentService) NodeHeartbeat(req *pb.GeneralRequest, stream pb.AgentServ
 	return nil
 }
 
-func (s *AgentService) Sync(req *pb.GeneralRequest, stream pb.AgentService_SyncServer) error {
+func (s *AgentService) Sync(req *pb.SyncRequest, stream pb.AgentService_SyncServer) error {
 	logrus.Info("sync service starts")
 
 	// init tht service list

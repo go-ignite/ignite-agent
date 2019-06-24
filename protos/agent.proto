@@ -3,7 +3,7 @@ option go_package = "github.com/go-ignite/ignite-agent/protos";
 
 service AgentService {
 	rpc NodeHeartbeat(GeneralRequest) returns (stream HeartbeatStreamServer);
-	rpc Sync(GeneralRequest) returns (stream SyncStreamServer);
+	rpc Sync(SyncRequest) returns (stream SyncStreamServer);
 
 	rpc Init(GeneralRequest) returns (GeneralResponse);
 	rpc CreateService(CreateServiceRequest) returns (CreateServiceResponse);
@@ -61,6 +61,10 @@ message ServiceInfo {
 
 message SyncStreamServer{
 	repeated ServiceInfo services = 1;
+}
+
+message SyncRequest {
+	int64 sync_interval = 1;
 }
 
 message CreateServiceRequest {
