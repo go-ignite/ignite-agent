@@ -86,7 +86,12 @@ func (s *AgentService) Sync(req *pb.SyncRequest, stream pb.AgentService_SyncServ
 
 	for {
 		// sync service data
-		time.Sleep(time.Duration(req.SyncInterval.GetSeconds()) * time.Second)
+		interval, err := ptypes.Duration(req.SyncInterval)
+		if err != nil {
+			return status.Errorf(codes.InvalidArgument, "interval is invalid")
+		}
+
+		time.Sleep(interval)
 
 		// load detail info for every services
 		containers, err := utils.ListContainers()
