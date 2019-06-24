@@ -1,5 +1,6 @@
 syntax = "proto3";
 option go_package = "github.com/go-ignite/ignite-agent/protos";
+import "google/protobuf/duration.proto";
 
 service AgentService {
 	rpc NodeHeartbeat(GeneralRequest) returns (stream HeartbeatStreamServer);
@@ -65,7 +66,7 @@ message SyncStreamServer{
 
 message SyncRequest {
 	string token = 1;
-	int64 sync_interval = 2;
+	google.protobuf.Duration sync_interval = 2;
 }
 
 message CreateServiceRequest {
