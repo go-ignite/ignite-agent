@@ -8,6 +8,11 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/golang/protobuf/ptypes"
+
 	"github.com/go-ignite/ignite-agent/config"
 	pb "github.com/go-ignite/ignite-agent/protos"
 	"github.com/go-ignite/ignite-agent/utils"
@@ -54,13 +59,20 @@ func verifyToken(tokenString string, isAdmin *bool) bool {
 	return claims.VerifyExpiresAt(time.Now().Unix(), true)
 }
 
-func (s *AgentService) NodeHeartbeat(req *pb.GeneralRequest, stream pb.AgentService_NodeHeartbeatServer) error {
+func (s *AgentService) Heartbeat(req *pb.HeartbeatRequest, stream pb.AgentService_HeartbeatServer) error {
 	logrus.Info("node heartbeat starts")
+	// TODO verify token, verifyToken function needs to change
+
+	interval, err := ptypes.Duration(req.Interval)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "interval is invalid")
+	}
+
 	for {
 		if err := stream.Send(&pb.HeartbeatStreamServer{}); err != nil {
 			break
 		}
-		time.Sleep(3 * time.Second)
+		time.Sleep(interval)
 	}
 	logrus.Info("node heartbeat end")
 	return nil

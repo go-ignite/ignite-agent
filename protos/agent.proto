@@ -3,7 +3,7 @@ option go_package = "github.com/go-ignite/ignite-agent/protos";
 import "google/protobuf/duration.proto";
 
 service AgentService {
-	rpc NodeHeartbeat(GeneralRequest) returns (stream HeartbeatStreamServer);
+	rpc Heartbeat(HeartbeatRequest) returns (stream HeartbeatStreamServer);
 	rpc Sync(SyncRequest) returns (stream SyncStreamServer);
 
 	rpc Init(GeneralRequest) returns (GeneralResponse);
@@ -48,6 +48,11 @@ message GeneralRequest {
 }
 
 message GeneralResponse {}
+
+message HeartbeatRequest {
+	string token = 1;
+	google.protobuf.Duration interval = 2;
+}
 
 message HeartbeatStreamServer{}
 

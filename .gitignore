@@ -12,6 +12,7 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 cmd/ignite-agent/ignite-agent
+/ignite-agent
 vendor
 /agent-cli
 /agent-rpc
