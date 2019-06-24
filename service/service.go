@@ -73,8 +73,8 @@ func (s *AgentService) Sync(req *pb.SyncRequest, stream pb.AgentService_SyncServ
 	services := []*pb.ServiceInfo{}
 
 	for {
-		// sync service data every 2 minutes
-		time.Sleep(2 * time.Minute)
+		// sync service data
+		time.Sleep(time.Duration(req.SyncInterval.GetSeconds()) * time.Second)
 
 		// load detail info for every services
 		containers, err := utils.ListContainers()
