@@ -2,23 +2,18 @@ package service
 
 import (
 	"context"
-	"errors"
 	"io"
 	"io/ioutil"
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/golang/protobuf/ptypes"
-
-	"github.com/go-ignite/ignite-agent/config"
 	pb "github.com/go-ignite/ignite-agent/protos"
 	"github.com/go-ignite/ignite-agent/utils"
-
-	"github.com/dgrijalva/jwt-go"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -30,38 +25,8 @@ var (
 
 type AgentService struct{}
 
-func verifyToken(tokenString string, isAdmin *bool) bool {
-	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("signing method is invalid")
-		}
-		return []byte(config.C.App.Secret), nil
-	})
-	if err != nil {
-		return false
-	}
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return false
-	}
-	if !token.Valid {
-		return false
-	}
-	if isAdmin != nil {
-		id, ok := claims["id"].(float64)
-		if !ok {
-			return false
-		}
-		if (*isAdmin && id != -1) || (!*isAdmin && id <= 0) {
-			return false
-		}
-	}
-	return claims.VerifyExpiresAt(time.Now().Unix(), true)
-}
-
 func (s *AgentService) Heartbeat(req *pb.HeartbeatRequest, stream pb.AgentService_HeartbeatServer) error {
 	logrus.Info("node heartbeat starts")
-	// TODO verify token, verifyToken function needs to change
 
 	interval, err := ptypes.Duration(req.Interval)
 	if err != nil {
@@ -132,9 +97,7 @@ func (s *AgentService) Sync(req *pb.SyncRequest, stream pb.AgentService_SyncServ
 
 func (s *AgentService) Init(ctx context.Context, req *pb.GeneralRequest) (*pb.GeneralResponse, error) {
 	logrus.Info("agent init")
-	if isAdmin := true; !verifyToken(req.Token, &isAdmin) {
-		return nil, errors.New("request token is invalid")
-	}
+
 	wg := new(sync.WaitGroup)
 	for _, image := range imageMap {
 		reader, err := utils.PullImage(image)
@@ -144,7 +107,7 @@ func (s *AgentService) Init(ctx context.Context, req *pb.GeneralRequest) (*pb.Ge
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			io.Copy(ioutil.Discard, reader)
+			_, _ = io.Copy(ioutil.Discard, reader)
 		}()
 	}
 	wg.Wait()
@@ -159,10 +122,6 @@ func (s *AgentService) CreateService(ctx context.Context, req *pb.CreateServiceR
 		"method": req.EncryptionMethod.String(),
 	}).Info("create service")
 
-	if isAdmin := false; !verifyToken(req.Token, &isAdmin) {
-		return nil, errors.New("request token is invalid")
-	}
-
 	// TODO: refactor this part
 	serviceID, err := utils.CreateContainer(imageMap[req.Type], req.Name, req.EncryptionMethod.ValidMethod(), req.Password, 0)
 	if err != nil {
@@ -170,7 +129,7 @@ func (s *AgentService) CreateService(ctx context.Context, req *pb.CreateServiceR
 	}
 	err = utils.StartContainer(serviceID)
 	if err != nil {
-		utils.RemoveContainer(serviceID)
+		_ = utils.RemoveContainer(serviceID)
 		return nil, err
 	}
 	return &pb.CreateServiceResponse{ServiceId: serviceID}, nil
@@ -179,9 +138,6 @@ func (s *AgentService) CreateService(ctx context.Context, req *pb.CreateServiceR
 func (s *AgentService) StopService(ctx context.Context, req *pb.StopServiceRequest) (*pb.GeneralResponse, error) {
 	logrus.WithField("serviceID", req.ServiceId).Info("stop service")
 
-	if isAdmin := false; !verifyToken(req.Token, &isAdmin) {
-		return nil, errors.New("request token is invalid")
-	}
 	err := utils.StopContainer(req.ServiceId)
 	if err != nil {
 		return nil, err
@@ -192,9 +148,6 @@ func (s *AgentService) StopService(ctx context.Context, req *pb.StopServiceReque
 func (s *AgentService) RemoveService(ctx context.Context, req *pb.RemoveServiceRequest) (*pb.GeneralResponse, error) {
 	logrus.WithField("serviceID", req.ServiceId).Info("remove service")
 
-	if !verifyToken(req.Token, nil) {
-		return nil, errors.New("request token is invalid")
-	}
 	err := utils.RemoveContainer(req.ServiceId)
 	if err != nil {
 		return nil, err

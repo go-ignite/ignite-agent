@@ -16,7 +16,7 @@ type Config struct {
 	App struct {
 		Address  string `mapstructure:"address"`
 		LogLevel string `mapstructure:"log_level"`
-		Secret   string `mapstructure:"secret"`
+		Token    string `mapstructure:"token"`
 	} `mapstructure:"app"`
 	Host struct {
 		Address string `mapstructure:"address"`
@@ -29,7 +29,7 @@ func Init() {
 	// app
 	viper.SetDefault("app.log_level", "INFO")
 	viper.SetDefault("app.address", ":4000")
-	viper.SetDefault("app.secret", "ignite")
+	viper.SetDefault("app.token", "ignite-agent")
 	// host
 	viper.SetDefault("host.address", "localhost")
 	viper.SetDefault("host.from", "5001")

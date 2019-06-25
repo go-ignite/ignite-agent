@@ -43,15 +43,12 @@ message ServiceStatus {
 }
 
 
-message GeneralRequest {
-	string token = 1;
-}
+message GeneralRequest {}
 
 message GeneralResponse {}
 
 message HeartbeatRequest {
-	string token = 1;
-	google.protobuf.Duration interval = 2;
+	google.protobuf.Duration interval = 1;
 }
 
 message HeartbeatStreamServer{}
@@ -70,18 +67,16 @@ message SyncStreamServer{
 }
 
 message SyncRequest {
-	string token = 1;
-	google.protobuf.Duration sync_interval = 2;
+	google.protobuf.Duration sync_interval = 1;
 }
 
 message CreateServiceRequest {
-	string token = 1;
-	int32 port_from = 2;
-	int32 port_to = 3;
-	ServiceType.Enum type = 4;
-	ServiceEncryptionMethod.Enum encryption_method = 5;
-	string password = 6;
-	string name = 7;
+	int32 port_from = 1;
+	int32 port_to = 2;
+	ServiceType.Enum type = 3;
+	ServiceEncryptionMethod.Enum encryption_method = 4;
+	string password = 5;
+	string name = 6;
 }
 
 message CreateServiceResponse {
@@ -91,11 +86,9 @@ message CreateServiceResponse {
 }
 
 message StopServiceRequest {
-	string token = 1;
-	string service_id = 2;
+	string service_id = 1;
 }
 
 message RemoveServiceRequest {
-	string token = 1;
-	string service_id = 2;
+	string service_id = 1;
 }
