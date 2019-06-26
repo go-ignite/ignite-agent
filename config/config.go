@@ -1,53 +1,48 @@
 package config
 
 import (
+	"fmt"
 	"log"
+	"os"
 	"strings"
 
+	"github.com/joho/godotenv"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
-var (
-	C Config
-)
-
 type Config struct {
-	App struct {
-		Address  string `mapstructure:"address"`
-		LogLevel string `mapstructure:"log_level"`
-		Token    string `mapstructure:"token"`
-	} `mapstructure:"app"`
-	Host struct {
-		Address string `mapstructure:"address"`
-		From    int    `mapstructure:"from"`
-		To      int    `mapstructure:"to"`
-	} `mapstructure:"host"`
+	LogLevel string `mapstructure:"log_level"`
+	Address  string `mapstructure:"address"`
+	Token    string `mapstructure:"token"`
 }
 
-func Init() {
-	// app
-	viper.SetDefault("app.log_level", "INFO")
-	viper.SetDefault("app.address", ":4000")
-	viper.SetDefault("app.token", "ignite-agent")
-	// host
-	viper.SetDefault("host.address", "localhost")
-	viper.SetDefault("host.from", "5001")
-	viper.SetDefault("host.to", "6000")
+var defaultConfig = Config{
+	LogLevel: logrus.InfoLevel.String(),
+	Address:  ":4000",
+	Token:    "ignite-agent",
+}
 
-	// bind envs
+func Init() (*Config, error) {
+	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
+		return nil, errors.Wrap(err, "config: load .env file error")
+	}
+
 	viper.SetEnvPrefix("agent")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
-	if err := viper.Unmarshal(&C); err != nil {
+	c := defaultConfig
+	if err := viper.Unmarshal(&c); err != nil {
 		log.Fatalf("viper.Unmarshal error: %v\n", err)
 	}
 
-	// log
-	lv, err := logrus.ParseLevel(C.App.LogLevel)
+	lv, err := logrus.ParseLevel(c.LogLevel)
 	if err != nil {
-		log.Fatalf("logrus.ParseLevel error: %v\n", err)
+		return nil, fmt.Errorf("config: log_level is invalid")
 	}
 	logrus.SetLevel(lv)
+
+	return &c, nil
 }

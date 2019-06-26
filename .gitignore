@@ -17,3 +17,4 @@ vendor
 /agent-cli
 /agent-rpc
 .DS_Store
+/env

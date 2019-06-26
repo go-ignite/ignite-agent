@@ -66,3 +66,11 @@ func (x ServiceType_Enum) MarshalJSON() ([]byte, error) {
 	buffer = append(buffer, '"')
 	return buffer, nil
 }
+
+func (x ServiceType_Enum) ImageName() string {
+	if x == ServiceType_NOT_SET {
+		return ""
+	}
+
+	return fmt.Sprintf("goignite/%s:latest", strings.ReplaceAll(strings.ToLower(x.String()), "_", "-"))
+}

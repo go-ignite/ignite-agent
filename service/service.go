@@ -2,11 +2,18 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"sync"
 	"time"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
@@ -16,141 +23,204 @@ import (
 	"github.com/go-ignite/ignite-agent/utils"
 )
 
-var (
-	imageMap = map[pb.ServiceType_Enum]string{
-		pb.ServiceType_SS_LIBEV: utils.GetImageName("ss-libev"),
-		pb.ServiceType_SSR:      utils.GetImageName("ssr"),
+type Service struct {
+	cli *client.Client
+}
+
+func Init() (*Service, error) {
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		return nil, err
 	}
-)
 
-type AgentService struct{}
+	return &Service{
+		cli: cli,
+	}, nil
+}
 
-func (s *AgentService) Heartbeat(req *pb.HeartbeatRequest, stream pb.AgentService_HeartbeatServer) error {
-	logrus.Info("node heartbeat starts")
-
+func (s *Service) Heartbeat(req *pb.HeartbeatRequest, stream pb.AgentService_HeartbeatServer) error {
 	interval, err := ptypes.Duration(req.Interval)
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "interval is invalid")
 	}
 
 	for {
-		if err := stream.Send(&pb.HeartbeatStreamServer{}); err != nil {
+		if err := stream.Send(new(pb.HeartbeatStreamServer)); err != nil {
 			break
 		}
-		time.Sleep(interval)
+
+		select {
+		case <-stream.Context().Done():
+			break
+		case <-time.After(interval):
+		}
 	}
-	logrus.Info("node heartbeat end")
+
 	return nil
 }
 
-func (s *AgentService) Sync(req *pb.SyncRequest, stream pb.AgentService_SyncServer) error {
-	logrus.Info("sync service starts")
-
-	// init tht service list
-	services := []*pb.ServiceInfo{}
+func (s *Service) Sync(req *pb.SyncRequest, stream pb.AgentService_SyncServer) error {
+	interval, err := ptypes.Duration(req.SyncInterval)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "interval is invalid")
+	}
 
 	for {
-		// sync service data
-		interval, err := ptypes.Duration(req.SyncInterval)
-		if err != nil {
-			return status.Errorf(codes.InvalidArgument, "interval is invalid")
-		}
+		var services []*pb.ServiceInfo
+		if err := func() error {
+			containers, err := s.cli.ContainerList(context.Background(), types.ContainerListOptions{
+				All: true,
+			})
 
-		time.Sleep(interval)
+			if err != nil {
+				return err
+			}
 
-		// load detail info for every services
-		containers, err := utils.ListContainers()
-		if err != nil {
-			logrus.Error("failed to list container:", err)
+			for _, c := range containers {
+				if err := func() error {
+					svc := &pb.ServiceInfo{
+						ServiceId:   c.Names[0],
+						ContainerId: c.ID,
+						Port:        int32(c.Ports[0].PublicPort),
+					}
+
+					stat, err := s.cli.ContainerStats(context.Background(), c.ID, false)
+					if err != nil {
+						return err
+					}
+
+					bytes, err := ioutil.ReadAll(stat.Body)
+					if err != nil {
+						return err
+					}
+
+					sj := types.StatsJSON{}
+					if err := json.Unmarshal(bytes, &sj); err != nil {
+						return err
+					}
+
+					svc.StatsResult = int64(sj.Networks["eth0"].TxBytes)
+					services = append(services, svc)
+					return nil
+				}(); err != nil {
+					logrus.WithError(err).WithField("containerID", c.ID).Error("get container info error")
+				}
+			}
+
+			return nil
+		}(); err != nil {
+			logrus.WithError(err).Error("get containers error")
 			continue
 		}
 
-		for _, c := range containers {
-			svc := &pb.ServiceInfo{
-				ServiceId:   c.Names[0],
-				UserId:      c.Names[0],
-				ContainerId: c.ID,
-				Port:        int32(c.Ports[0].PublicPort),
+		if len(services) > 0 {
+			resp := &pb.SyncStreamServer{
+				Services: services,
 			}
-
-			// get net data of container
-			statResult, err := utils.GetContainerStatsOutNet(svc.ContainerId)
-			if err != nil {
-				logrus.Error(err)
+			if err := stream.Send(resp); err != nil {
+				break
 			}
-
-			svc.StatsResult = int64(statResult)
-			services = append(services, svc)
 		}
 
-		if err := stream.Send(&pb.SyncStreamServer{
-			Services: services,
-		}); err != nil {
-			logrus.Error("sync service stream is unavailable")
+		select {
+		case <-stream.Context().Done():
 			break
+		case <-time.After(interval):
 		}
 	}
 
-	logrus.Info("sync service end")
 	return nil
 }
 
-func (s *AgentService) Init(ctx context.Context, req *pb.GeneralRequest) (*pb.GeneralResponse, error) {
-	logrus.Info("agent init")
-
+func (s *Service) Init(ctx context.Context, req *pb.GeneralRequest) (*pb.GeneralResponse, error) {
 	wg := new(sync.WaitGroup)
-	for _, image := range imageMap {
-		reader, err := utils.PullImage(image)
-		if err != nil {
-			return nil, err
-		}
+	images := []string{pb.ServiceType_SS_LIBEV.ImageName(), pb.ServiceType_SSR.ImageName()}
+
+	for _, image := range images {
 		wg.Add(1)
+		reader, err := s.cli.ImagePull(ctx, image, types.ImagePullOptions{})
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+
 		go func() {
 			defer wg.Done()
-			_, _ = io.Copy(ioutil.Discard, reader)
+			_, _ = io.Copy(os.Stdout, reader)
 		}()
 	}
+
 	wg.Wait()
 	return &pb.GeneralResponse{}, nil
 }
 
-func (s *AgentService) CreateService(ctx context.Context, req *pb.CreateServiceRequest) (*pb.CreateServiceResponse, error) {
-	logrus.WithFields(logrus.Fields{
-		"name":   req.Name,
-		"type":   req.Type,
-		"image":  imageMap[req.Type],
-		"method": req.EncryptionMethod.String(),
-	}).Info("create service")
+func (s *Service) CreateService(ctx context.Context, req *pb.CreateServiceRequest) (*pb.CreateServiceResponse, error) {
+	// first find an available port
+	containers, err := s.cli.ContainerList(context.Background(), types.ContainerListOptions{
+		All: true,
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
 
-	// TODO: refactor this part
-	serviceID, err := utils.CreateContainer(imageMap[req.Type], req.Name, req.EncryptionMethod.ValidMethod(), req.Password, 0)
-	if err != nil {
-		return nil, err
+	usedPortMap := map[int32]bool{}
+	for _, c := range containers {
+		usedPortMap[int32(c.Ports[0].PublicPort)] = true
 	}
-	err = utils.StartContainer(serviceID)
+
+	port, err := utils.GetAvailablePort(req.PortFrom, req.PortTo, usedPortMap)
 	if err != nil {
-		_ = utils.RemoveContainer(serviceID)
-		return nil, err
+		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
-	return &pb.CreateServiceResponse{ServiceId: serviceID}, nil
+
+	// create container
+	config := &container.Config{
+		Image: req.Type.ImageName(),
+		ExposedPorts: nat.PortSet{
+			"3389/tcp": struct{}{},
+		},
+		Cmd: []string{"-k", req.Password, "-m", req.EncryptionMethod.ValidMethod()},
+	}
+	hostConfig := &container.HostConfig{
+		PortBindings: nat.PortMap{
+			"3389/tcp": []nat.PortBinding{
+				{
+					HostIP:   "0.0.0.0",
+					HostPort: fmt.Sprintf("%d", port),
+				},
+			},
+		},
+		RestartPolicy: container.RestartPolicy{Name: "always"},
+	}
+	result, err := s.cli.ContainerCreate(context.Background(), config, hostConfig, nil, req.Name)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	if err := s.cli.ContainerStart(context.Background(), result.ID, types.ContainerStartOptions{}); err != nil {
+		// remove the container
+		_ = s.cli.ContainerRemove(context.Background(), result.ID, types.ContainerRemoveOptions{Force: true})
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.CreateServiceResponse{
+		ServiceId:   req.Name,
+		ContainerId: result.ID,
+		Port:        port,
+	}, nil
 }
 
-func (s *AgentService) StopService(ctx context.Context, req *pb.StopServiceRequest) (*pb.GeneralResponse, error) {
-	logrus.WithField("serviceID", req.ServiceId).Info("stop service")
-
-	err := utils.StopContainer(req.ServiceId)
-	if err != nil {
-		return nil, err
+func (s *Service) StopService(ctx context.Context, req *pb.StopServiceRequest) (*pb.GeneralResponse, error) {
+	if err := s.cli.ContainerStop(context.Background(), req.ServiceId, nil); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
 	}
+
 	return &pb.GeneralResponse{}, nil
 }
 
-func (s *AgentService) RemoveService(ctx context.Context, req *pb.RemoveServiceRequest) (*pb.GeneralResponse, error) {
-	logrus.WithField("serviceID", req.ServiceId).Info("remove service")
-
-	err := utils.RemoveContainer(req.ServiceId)
-	if err != nil {
-		return nil, err
+func (s *Service) RemoveService(ctx context.Context, req *pb.RemoveServiceRequest) (*pb.GeneralResponse, error) {
+	if err := s.cli.ContainerRemove(context.Background(), req.ServiceId, types.ContainerRemoveOptions{Force: true}); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
 	}
+
 	return &pb.GeneralResponse{}, nil
 }
