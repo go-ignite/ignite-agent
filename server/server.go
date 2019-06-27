@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"net"
+	"runtime/debug"
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -48,16 +49,23 @@ func New(config *config.Config, service *service.Service) *Server {
 		}),
 	}
 
+	recoverOpts := []grpc_recovery.Option{
+		grpc_recovery.WithRecoveryHandler(func(p interface{}) error {
+			logrus.Errorf("recover from panic: %v\n%s\n", p, debug.Stack())
+			return status.Errorf(codes.Internal, "%v", p)
+		}),
+	}
+
 	server := grpc.NewServer(
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
 			grpc_auth.StreamServerInterceptor(authFunc),
 			grpc_logrus.StreamServerInterceptor(logEntry, opts...),
-			grpc_recovery.StreamServerInterceptor(),
+			grpc_recovery.StreamServerInterceptor(recoverOpts...),
 		)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
 			grpc_auth.UnaryServerInterceptor(authFunc),
 			grpc_logrus.UnaryServerInterceptor(logEntry, opts...),
-			grpc_recovery.UnaryServerInterceptor(),
+			grpc_recovery.UnaryServerInterceptor(recoverOpts...),
 		)),
 	)
 

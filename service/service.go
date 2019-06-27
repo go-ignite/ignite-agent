@@ -12,6 +12,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/golang/protobuf/ptypes"
@@ -22,6 +23,11 @@ import (
 	pb "github.com/go-ignite/ignite-agent/protos"
 	"github.com/go-ignite/ignite-agent/utils"
 )
+
+var labels = map[string]string{
+	"org.label-schema.url": "https://github.com/go-ignite",
+	"maintainer":           "go-ignite",
+}
 
 type Service struct {
 	cli *client.Client
@@ -68,10 +74,7 @@ func (s *Service) Sync(req *pb.SyncRequest, stream pb.AgentService_SyncServer) e
 	for {
 		var services []*pb.ServiceInfo
 		if err := func() error {
-			containers, err := s.cli.ContainerList(context.Background(), types.ContainerListOptions{
-				All: true,
-			})
-
+			containers, err := s.containerList()
 			if err != nil {
 				return err
 			}
@@ -155,9 +158,7 @@ func (s *Service) Init(ctx context.Context, req *pb.GeneralRequest) (*pb.General
 
 func (s *Service) CreateService(ctx context.Context, req *pb.CreateServiceRequest) (*pb.CreateServiceResponse, error) {
 	// first find an available port
-	containers, err := s.cli.ContainerList(context.Background(), types.ContainerListOptions{
-		All: true,
-	})
+	containers, err := s.containerList()
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -178,7 +179,8 @@ func (s *Service) CreateService(ctx context.Context, req *pb.CreateServiceReques
 		ExposedPorts: nat.PortSet{
 			"3389/tcp": struct{}{},
 		},
-		Cmd: []string{"-k", req.Password, "-m", req.EncryptionMethod.ValidMethod()},
+		Cmd:    []string{"-k", req.Password, "-m", req.EncryptionMethod.ValidMethod()},
+		Labels: labels,
 	}
 	hostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{
@@ -223,4 +225,15 @@ func (s *Service) RemoveService(ctx context.Context, req *pb.RemoveServiceReques
 	}
 
 	return &pb.GeneralResponse{}, nil
+}
+
+func (s *Service) containerList() ([]types.Container, error) {
+	args := filters.NewArgs()
+	for k, v := range labels {
+		args.Add("label", fmt.Sprintf("%s=%s", k, v))
+	}
+
+	return s.cli.ContainerList(context.Background(), types.ContainerListOptions{
+		Filters: args,
+	})
 }
