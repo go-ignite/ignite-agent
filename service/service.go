@@ -43,6 +43,7 @@ func Init() (*Service, error) {
 		cli: cli,
 	}
 
+	// pull the required images
 	if err := svc.PullImages(); err != nil {
 		return nil, err
 	}
@@ -185,6 +186,9 @@ func (s *Service) CreateService(ctx context.Context, req *pb.CreateServiceReques
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
+	// set container labels
+	newLabels := utils.CopyMap(labels)
+
 	// create container
 	config := &container.Config{
 		Image: req.Type.ImageName(),
@@ -192,7 +196,7 @@ func (s *Service) CreateService(ctx context.Context, req *pb.CreateServiceReques
 			"3389/tcp": struct{}{},
 		},
 		Cmd:    []string{"-k", req.Password, "-m", req.EncryptionMethod.ValidMethod()},
-		Labels: labels,
+		Labels: newLabels,
 	}
 	hostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{

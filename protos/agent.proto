@@ -83,6 +83,7 @@ message CreateServiceRequest {
 	ServiceEncryptionMethod.Enum encryption_method = 4;
 	string password = 5;
 	string name = 6;
+	string nodeID = 7;
 }
 
 message CreateServiceResponse {
