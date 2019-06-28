@@ -30,8 +30,9 @@ func (x ServiceEncryptionMethod_Enum) ValidMethod() string {
 }
 
 func (x *ServiceEncryptionMethod_Enum) UnmarshalJSON(data []byte) error {
-	data = bytes.Trim(data, "\"")
-	value, ok := ServiceEncryptionMethod_Enum_value[string(data)]
+	str := string(bytes.Trim(data, "\""))
+	str = strings.ReplaceAll(strings.ToUpper(str), "-", "_")
+	value, ok := ServiceEncryptionMethod_Enum_value[str]
 	if !ok {
 		return fmt.Errorf("unmarshal \"%s\" to %T failed", data, x)
 	}

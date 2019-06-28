@@ -33,6 +33,15 @@ type Service struct {
 	cli *client.Client
 }
 
+func newLabels(nodeID string) map[string]string {
+	nl := map[string]string{}
+	for k, v := range labels {
+		nl[k] = v
+	}
+	nl["nodeID"] = nodeID
+	return nl
+}
+
 func Init() (*Service, error) {
 	cli, err := client.NewEnvClient()
 	if err != nil {
@@ -44,14 +53,14 @@ func Init() (*Service, error) {
 	}
 
 	// pull the required images
-	if err := svc.PullImages(); err != nil {
+	if err := svc.pullImages(); err != nil {
 		return nil, err
 	}
 
 	return svc, nil
 }
 
-func (s *Service) PullImages() error {
+func (s *Service) pullImages() error {
 	wg := new(sync.WaitGroup)
 	images := []string{pb.ServiceType_SS_LIBEV.ImageName(), pb.ServiceType_SSR.ImageName()}
 
@@ -59,7 +68,7 @@ func (s *Service) PullImages() error {
 		wg.Add(1)
 		reader, err := s.cli.ImagePull(context.Background(), image, types.ImagePullOptions{})
 		if err != nil {
-			return status.Error(codes.Internal, err.Error())
+			return err
 		}
 
 		go func() {
@@ -98,11 +107,12 @@ func (s *Service) Sync(req *pb.SyncRequest, stream pb.AgentService_SyncServer) e
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "interval is invalid")
 	}
+	nl := newLabels(req.NodeId)
 
 	for {
 		var services []*pb.ServiceInfo
 		if err := func() error {
-			containers, err := s.containerList()
+			containers, err := s.containerList(nl)
 			if err != nil {
 				return err
 			}
@@ -171,7 +181,8 @@ func (s *Service) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingRespon
 
 func (s *Service) CreateService(ctx context.Context, req *pb.CreateServiceRequest) (*pb.CreateServiceResponse, error) {
 	// first find an available port
-	containers, err := s.containerList()
+	nl := newLabels(req.NodeId)
+	containers, err := s.containerList(nl)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -186,9 +197,6 @@ func (s *Service) CreateService(ctx context.Context, req *pb.CreateServiceReques
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
 
-	// set container labels
-	newLabels := utils.CopyMap(labels)
-
 	// create container
 	config := &container.Config{
 		Image: req.Type.ImageName(),
@@ -196,7 +204,7 @@ func (s *Service) CreateService(ctx context.Context, req *pb.CreateServiceReques
 			"3389/tcp": struct{}{},
 		},
 		Cmd:    []string{"-k", req.Password, "-m", req.EncryptionMethod.ValidMethod()},
-		Labels: newLabels,
+		Labels: nl,
 	}
 	hostConfig := &container.HostConfig{
 		PortBindings: nat.PortMap{
@@ -243,9 +251,9 @@ func (s *Service) RemoveService(ctx context.Context, req *pb.RemoveServiceReques
 	return &pb.GeneralResponse{}, nil
 }
 
-func (s *Service) containerList() ([]types.Container, error) {
+func (s *Service) containerList(nl map[string]string) ([]types.Container, error) {
 	args := filters.NewArgs()
-	for k, v := range labels {
+	for k, v := range nl {
 		args.Add("label", fmt.Sprintf("%s=%s", k, v))
 	}
 
