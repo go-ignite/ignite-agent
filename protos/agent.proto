@@ -6,7 +6,7 @@ service AgentService {
 	rpc Heartbeat(HeartbeatRequest) returns (stream HeartbeatStreamServer);
 	rpc Sync(SyncRequest) returns (stream SyncStreamServer);
 
-	rpc Init(GeneralRequest) returns (GeneralResponse);
+	rpc Ping(PingRequest) returns (PingResponse);
 	rpc CreateService(CreateServiceRequest) returns (CreateServiceResponse);
 	rpc StopService(StopServiceRequest) returns (GeneralResponse);
 	rpc RemoveService(RemoveServiceRequest) returns (GeneralResponse);
@@ -46,6 +46,12 @@ message ServiceStatus {
 message GeneralRequest {}
 
 message GeneralResponse {}
+
+message PingRequest {}
+
+message PingResponse {
+	string result = 1;
+}
 
 message HeartbeatRequest {
 	google.protobuf.Duration interval = 1;

@@ -39,9 +39,36 @@ func Init() (*Service, error) {
 		return nil, err
 	}
 
-	return &Service{
+	svc := &Service{
 		cli: cli,
-	}, nil
+	}
+
+	if err := svc.PullImages(); err != nil {
+		return nil, err
+	}
+
+	return svc, nil
+}
+
+func (s *Service) PullImages() error {
+	wg := new(sync.WaitGroup)
+	images := []string{pb.ServiceType_SS_LIBEV.ImageName(), pb.ServiceType_SSR.ImageName()}
+
+	for _, image := range images {
+		wg.Add(1)
+		reader, err := s.cli.ImagePull(context.Background(), image, types.ImagePullOptions{})
+		if err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
+
+		go func() {
+			defer wg.Done()
+			_, _ = io.Copy(os.Stdout, reader)
+		}()
+	}
+
+	wg.Wait()
+	return nil
 }
 
 func (s *Service) Heartbeat(req *pb.HeartbeatRequest, stream pb.AgentService_HeartbeatServer) error {
@@ -135,25 +162,10 @@ func (s *Service) Sync(req *pb.SyncRequest, stream pb.AgentService_SyncServer) e
 	return nil
 }
 
-func (s *Service) Init(ctx context.Context, req *pb.GeneralRequest) (*pb.GeneralResponse, error) {
-	wg := new(sync.WaitGroup)
-	images := []string{pb.ServiceType_SS_LIBEV.ImageName(), pb.ServiceType_SSR.ImageName()}
-
-	for _, image := range images {
-		wg.Add(1)
-		reader, err := s.cli.ImagePull(ctx, image, types.ImagePullOptions{})
-		if err != nil {
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-
-		go func() {
-			defer wg.Done()
-			_, _ = io.Copy(os.Stdout, reader)
-		}()
-	}
-
-	wg.Wait()
-	return &pb.GeneralResponse{}, nil
+func (s *Service) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingResponse, error) {
+	return &pb.PingResponse{
+		Result: "Pong",
+	}, nil
 }
 
 func (s *Service) CreateService(ctx context.Context, req *pb.CreateServiceRequest) (*pb.CreateServiceResponse, error) {
