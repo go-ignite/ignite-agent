@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+var ServiceName = _AgentService_serviceDesc.ServiceName
+
 func (x ServiceType_Enum) Suit(m ServiceEncryptionMethod_Enum) bool {
 	switch x {
 	case ServiceType_SS_LIBEV:

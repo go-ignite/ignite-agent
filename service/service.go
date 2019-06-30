@@ -120,9 +120,9 @@ func (s *Service) Sync(req *pb.SyncRequest, stream pb.AgentService_SyncServer) e
 			for _, c := range containers {
 				if err := func() error {
 					svc := &pb.ServiceInfo{
-						ServiceId:   c.Names[0],
-						ContainerId: c.ID,
-						Port:        int32(c.Ports[0].PublicPort),
+						ContainerName: c.Names[0],
+						ContainerId:   c.ID,
+						Port:          int32(c.Ports[0].PublicPort),
 					}
 
 					stat, err := s.cli.ContainerStats(context.Background(), c.ID, false)
@@ -173,12 +173,6 @@ func (s *Service) Sync(req *pb.SyncRequest, stream pb.AgentService_SyncServer) e
 	return nil
 }
 
-func (s *Service) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingResponse, error) {
-	return &pb.PingResponse{
-		Result: "Pong",
-	}, nil
-}
-
 func (s *Service) CreateService(ctx context.Context, req *pb.CreateServiceRequest) (*pb.CreateServiceResponse, error) {
 	// first find an available port
 	nl := newLabels(req.NodeId)
@@ -217,7 +211,7 @@ func (s *Service) CreateService(ctx context.Context, req *pb.CreateServiceReques
 		},
 		RestartPolicy: container.RestartPolicy{Name: "always"},
 	}
-	result, err := s.cli.ContainerCreate(context.Background(), config, hostConfig, nil, req.Name)
+	result, err := s.cli.ContainerCreate(context.Background(), config, hostConfig, nil, req.UserId)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -229,26 +223,26 @@ func (s *Service) CreateService(ctx context.Context, req *pb.CreateServiceReques
 	}
 
 	return &pb.CreateServiceResponse{
-		ServiceId:   req.Name,
-		ContainerId: result.ID,
-		Port:        port,
+		ContainerName: req.UserId,
+		ContainerId:   result.ID,
+		Port:          port,
 	}, nil
 }
 
-func (s *Service) StopService(ctx context.Context, req *pb.StopServiceRequest) (*pb.GeneralResponse, error) {
-	if err := s.cli.ContainerStop(context.Background(), req.ServiceId, nil); err != nil {
+func (s *Service) StopService(ctx context.Context, req *pb.StopServiceRequest) (*pb.EmptyResponse, error) {
+	if err := s.cli.ContainerStop(context.Background(), req.ContainerId, nil); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &pb.GeneralResponse{}, nil
+	return &pb.EmptyResponse{}, nil
 }
 
-func (s *Service) RemoveService(ctx context.Context, req *pb.RemoveServiceRequest) (*pb.GeneralResponse, error) {
-	if err := s.cli.ContainerRemove(context.Background(), req.ServiceId, types.ContainerRemoveOptions{Force: true}); err != nil {
+func (s *Service) RemoveService(ctx context.Context, req *pb.RemoveServiceRequest) (*pb.EmptyResponse, error) {
+	if err := s.cli.ContainerRemove(context.Background(), req.ContainerId, types.ContainerRemoveOptions{Force: true}); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &pb.GeneralResponse{}, nil
+	return &pb.EmptyResponse{}, nil
 }
 
 func (s *Service) containerList(nl map[string]string) ([]types.Container, error) {

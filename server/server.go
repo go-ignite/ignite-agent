@@ -13,6 +13,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
@@ -68,8 +70,12 @@ func New(config *config.Config, service *service.Service) *Server {
 			grpc_recovery.UnaryServerInterceptor(recoverOpts...),
 		)),
 	)
-
 	protos.RegisterAgentServiceServer(server, service)
+
+	// register health check service
+	hs := health.NewServer()
+	hs.SetServingStatus(protos.ServiceName, healthpb.HealthCheckResponse_SERVING)
+	healthpb.RegisterHealthServer(server, hs)
 
 	return &Server{
 		config:  config,
