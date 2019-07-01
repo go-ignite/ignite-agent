@@ -7,6 +7,8 @@ import (
 )
 
 func main() {
+	DisplayVersion()
+
 	a, err := agent.Init()
 	if err != nil {
 		log.Fatalln(err)
