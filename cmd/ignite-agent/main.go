@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	DisplayVersion()
+	displayVersion()
 
 	a, err := agent.Init()
 	if err != nil {
