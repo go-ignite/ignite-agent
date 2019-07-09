@@ -12,9 +12,6 @@ RUN apk --no-cache add ca-certificates tzdata sqlite \
 			&& echo "Asia/Shanghai" >  /etc/timezone \
 			&& apk del tzdata
 
-# See https://stackoverflow.com/questions/34729748/installed-go-binary-not-found-in-path-on-alpine-linux-docker
-RUN mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
-
 RUN mkdir /ignite-agent
 WORKDIR /ignite-agent
 COPY --from=builder /go/src/ignite-agent/cmd/ignite-agent/ignite-agent .
