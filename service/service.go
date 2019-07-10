@@ -237,6 +237,14 @@ func (s *Service) StopService(ctx context.Context, req *pb.StopServiceRequest) (
 	return &pb.EmptyResponse{}, nil
 }
 
+func (s *Service) StartService(ctx context.Context, req *pb.StartServiceRequest) (*pb.EmptyResponse, error) {
+	if err := s.cli.ContainerStart(context.Background(), req.ContainerId, types.ContainerStartOptions{}); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.EmptyResponse{}, nil
+}
+
 func (s *Service) RemoveService(ctx context.Context, req *pb.RemoveServiceRequest) (*pb.EmptyResponse, error) {
 	if err := s.cli.ContainerRemove(context.Background(), req.ContainerId, types.ContainerRemoveOptions{Force: true}); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
