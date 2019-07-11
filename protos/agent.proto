@@ -8,6 +8,7 @@ service AgentService {
 
 	rpc CreateService(CreateServiceRequest) returns (CreateServiceResponse);
 	rpc StopService(StopServiceRequest) returns (EmptyResponse);
+	rpc StartService(StartServiceRequest) returns (EmptyResponse);
 	rpc RemoveService(RemoveServiceRequest) returns (EmptyResponse);
 }
 
@@ -86,6 +87,10 @@ message CreateServiceResponse {
 }
 
 message StopServiceRequest {
+	string container_id = 1;
+}
+
+message StartServiceRequest {
 	string container_id = 1;
 }
 
