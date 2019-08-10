@@ -127,7 +127,6 @@ func (s *Service) Sync(req *pb.SyncRequest, stream pb.AgentService_SyncServer) e
 					svc := &pb.ServiceInfo{
 						ContainerName: strings.TrimPrefix(c.Names[0], "/"),
 						ContainerId:   c.ID,
-						Port:          int32(c.Ports[0].PublicPort),
 						Status:        state,
 					}
 
@@ -267,5 +266,6 @@ func (s *Service) containerList(nl map[string]string) ([]types.Container, error)
 
 	return s.cli.ContainerList(context.Background(), types.ContainerListOptions{
 		Filters: args,
+		All:     true,
 	})
 }

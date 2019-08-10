@@ -56,9 +56,8 @@ message HeartbeatStreamServer{}
 message ServiceInfo {
 	string container_name = 1;
 	string container_id = 2;
-	int32 port = 3;
-	ServiceStatus.Enum status = 4;
-	int64 stats_result = 5;
+	ServiceStatus.Enum status = 3;
+	int64 stats_result = 4;
 }
 
 message SyncStreamServer{
