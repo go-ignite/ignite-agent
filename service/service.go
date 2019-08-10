@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -119,10 +120,15 @@ func (s *Service) Sync(req *pb.SyncRequest, stream pb.AgentService_SyncServer) e
 
 			for _, c := range containers {
 				if err := func() error {
+					state := pb.ServiceStatus_RUNNING
+					if c.State != "running" {
+						state = pb.ServiceStatus_STOPPED
+					}
 					svc := &pb.ServiceInfo{
-						ContainerName: c.Names[0],
+						ContainerName: strings.TrimPrefix(c.Names[0], "/"),
 						ContainerId:   c.ID,
 						Port:          int32(c.Ports[0].PublicPort),
+						Status:        state,
 					}
 
 					stat, err := s.cli.ContainerStats(context.Background(), c.ID, false)

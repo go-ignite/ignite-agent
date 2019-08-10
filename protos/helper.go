@@ -70,6 +70,25 @@ func (x ServiceType_Enum) MarshalJSON() ([]byte, error) {
 	return buffer, nil
 }
 
+func (x *ServiceStatus_Enum) UnmarshalJSON(data []byte) error {
+	data = bytes.Trim(data, "\"")
+	value, ok := ServiceStatus_Enum_value[string(data)]
+	if !ok {
+		return fmt.Errorf("unmarshal \"%s\" to %T failed", data, x)
+	}
+
+	*x = ServiceStatus_Enum(value)
+	return nil
+}
+
+func (x ServiceStatus_Enum) MarshalJSON() ([]byte, error) {
+	var buffer []byte
+	buffer = append(buffer, '"')
+	buffer = append(buffer, x.String()...)
+	buffer = append(buffer, '"')
+	return buffer, nil
+}
+
 func (x ServiceType_Enum) ImageName() string {
 	if x == ServiceType_NOT_SET {
 		return ""
