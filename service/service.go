@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -188,13 +189,18 @@ func (s *Service) CreateService(ctx context.Context, req *pb.CreateServiceReques
 
 	usedPortMap := map[int32]bool{}
 	for _, c := range containers {
-		usedPortMap[int32(c.Ports[0].PublicPort)] = true
+		port, err := strconv.Atoi(c.Labels["port"])
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		usedPortMap[int32(port)] = true
 	}
 
 	port, err := utils.GetAvailablePort(req.PortFrom, req.PortTo, usedPortMap)
 	if err != nil {
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
 	}
+	nl["port"] = fmt.Sprintf("%d", port)
 
 	// create container
 	config := &container.Config{
